@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: fake-service
+  namespace: fake-service
+  labels:
+    app: fake-service
+spec:
+  selector:
+    matchLabels:
+      app: fake-service
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics

@@ -1,0 +1,23 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: monitoring
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  path: ./monitoring
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: fake-service
+  targetNamespace: monitoring
+  timeout: 10m
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2beta1
+      kind: HelmRelease
+      name: kube-prometheus-stack
+      namespace: monitoring
+    - apiVersion: helm.toolkit.fluxcd.io/v2beta1
+      kind: HelmRelease
+      name: loki
+      namespace: monitoring
