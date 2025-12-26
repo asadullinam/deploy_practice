@@ -1,0 +1,56 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: grafana
+      version: '>=8.0.0'
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: monitoring
+      interval: 1m
+  values:
+    adminPassword: admin
+    persistence:
+      enabled: false
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+    sidecar:
+      dashboards:
+        enabled: true
+        label: grafana_dashboard
+        labelValue: "1"
+        folder: /tmp/dashboards
+        folderAnnotation: grafana_folder
+        searchNamespace: ALL
+        provider:
+          allowUiUpdates: true
+          disableDelete: false
+    datasources:
+      datasources.yaml:
+        apiVersion: 1
+        datasources:
+          - name: Prometheus
+            type: prometheus
+            uid: prometheus
+            url: http://kube-prometheus-stack-prometheus:9090
+            access: proxy
+            isDefault: true
+            jsonData:
+              httpMethod: POST
+          - name: Loki
+            type: loki
+            uid: loki
+            url: http://loki:3100
+            access: proxy
+            isDefault: false

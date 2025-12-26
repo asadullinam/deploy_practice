@@ -6,6 +6,8 @@ from fastapi.responses import PlainTextResponse
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 import logging
 import uvicorn
+import httpx
+from contextlib import asynccontextmanager
 
 # Настройка логирования
 logging.basicConfig(
@@ -14,8 +16,37 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Фоновая задача для генерации трафика
+async def generate_background_traffic():
+    """Генерирует фоновый трафик для метрик"""
+    await asyncio.sleep(10)  # Ждем запуска приложения
+    
+    endpoints = ["/", "/health", "/users", "/stats"]
+    
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        while True:
+            try:
+                endpoint = random.choice(endpoints)
+                await client.get(f"http://localhost:8000{endpoint}")
+                await asyncio.sleep(random.uniform(2, 8))
+            except Exception as e:
+                logger.debug(f"Background traffic error: {e}")
+                await asyncio.sleep(5)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Запуск фоновой задачи
+    task = asyncio.create_task(generate_background_traffic())
+    yield
+    # Остановка фоновой задачи
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
 # Создаем FastAPI приложение
-app = FastAPI(title="Fake Service API", version="1.0.0")
+app = FastAPI(title="Fake Service API", version="1.0.0", lifespan=lifespan)
 
 # Prometheus метрики
 request_counter = Counter(
